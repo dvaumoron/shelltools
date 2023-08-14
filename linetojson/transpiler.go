@@ -45,7 +45,7 @@ func main() {
 }
 
 func lineToJsonWithInit(cmd *cobra.Command, args []string) error {
-	columns := spaceSplitter(args[0]) // TODO make this optional with autonaming of column
+	columns := spaceSplitter(args[0]) // TODO make this optional with autonaming of column (increment or from first line)
 
 	src := os.Stdin
 	if len(args) != 1 {
