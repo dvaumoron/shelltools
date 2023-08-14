@@ -47,6 +47,7 @@ func main() {
 
 func jsonToTableWithInit(cmd *cobra.Command, args []string) error {
 	columns := spaceSplitter(args[0]) // TODO make this optional based on order of attribute in first object
+	// TODO add an optional flag to output simple space separate value
 	// TODO add an optional flag to sort on a column (with an int converted version)
 	// TODO add an optional flag to limit number of line to output
 
