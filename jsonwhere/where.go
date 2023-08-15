@@ -32,10 +32,11 @@ import (
 func main() {
 	cmd := cobra.Command{
 		Use:   "jsonwhere EXPRESSION [FILE]",
-		Short: "jsonwhere filter JSON object from FILE with EXPRESSION as predicate",
-		Long:  "todo",
-		Args:  cobra.RangeArgs(1, 2),
-		RunE:  jsonWhereWithInit,
+		Short: "jsonwhere filter JSON object from FILE with EXPRESSION as predicate.",
+		Long: `jsonwhere filter JSON object from FILE with EXPRESSION as predicate,
+to know which EXPRESSION is accepted : see https://expr.medv.io/docs/Language-Definition`,
+		Args: cobra.RangeArgs(1, 2),
+		RunE: jsonWhereWithInit,
 	}
 
 	if err := cmd.Execute(); err != nil {
