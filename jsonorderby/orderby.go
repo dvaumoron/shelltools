@@ -42,6 +42,15 @@ func (a byAttr[T]) Len() int           { return len(a) }
 func (a byAttr[T]) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a byAttr[T]) Less(i, j int) bool { return a[i].attr < a[j].attr }
 
+type byAttrDesc[T cmp.Ordered] []attrAndData[T]
+
+func (a byAttrDesc[T]) Len() int           { return len(a) }
+func (a byAttrDesc[T]) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a byAttrDesc[T]) Less(i, j int) bool { return a[i].attr > a[j].attr }
+
+var extractAsNumber bool
+var descOrder bool
+
 func main() {
 	cmd := cobra.Command{
 		Use:   "jsonorderby COLUMN [FILE]",
@@ -51,6 +60,10 @@ func main() {
 		RunE:  jsonOrderByWithInit,
 	}
 
+	cmdFlags := cmd.Flags()
+	cmdFlags.BoolVarP(&extractAsNumber, "number", "n", false, "process values in ordering column as number")
+	cmdFlags.BoolVarP(&descOrder, "desc", "d", false, "sort in descending order")
+
 	if err := cmd.Execute(); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -59,7 +72,6 @@ func main() {
 
 func jsonOrderByWithInit(cmd *cobra.Command, args []string) error {
 	column := args[0]
-	extractAsInt := false // TODO add an optional flag to convert sort column in int
 
 	src, closer, err := common.GetSource(args, 1)
 	if err != nil {
@@ -67,9 +79,9 @@ func jsonOrderByWithInit(cmd *cobra.Command, args []string) error {
 	}
 	defer closer()
 
-	if extractAsInt {
-		return orderBy(column, src, func(jsonObject map[string]any) int64 {
-			return extractInt(jsonObject, column)
+	if extractAsNumber {
+		return orderBy(column, src, func(jsonObject map[string]any) float64 {
+			return extractFloat(jsonObject, column)
 		})
 	}
 	return orderBy(column, src, func(jsonObject map[string]any) string {
@@ -88,7 +100,12 @@ func orderBy[T cmp.Ordered](column string, src *os.File, extracter func(map[stri
 		}
 		attrAndDatas = append(attrAndDatas, attrAndData[T]{attr: extracter(jsonObject), data: b})
 	}
-	sort.Sort(byAttr[T](attrAndDatas))
+
+	if descOrder {
+		sort.Sort(byAttrDesc[T](attrAndDatas))
+	} else {
+		sort.Sort(byAttr[T](attrAndDatas))
+	}
 
 	endLine := []byte{'\n'}
 	for _, value := range attrAndDatas {
@@ -102,7 +119,7 @@ func orderBy[T cmp.Ordered](column string, src *os.File, extracter func(map[stri
 	return scanner.Err()
 }
 
-func extractInt(jsonObject map[string]any, column string) int64 {
+func extractFloat(jsonObject map[string]any, column string) float64 {
 	value := jsonObject[column]
 	switch casted := value.(type) {
 	case bool:
@@ -110,9 +127,9 @@ func extractInt(jsonObject map[string]any, column string) int64 {
 			return 1
 		}
 	case float64:
-		return int64(casted)
+		return casted
 	case string:
-		parsed, _ := strconv.ParseInt(casted, 10, 64)
+		parsed, _ := strconv.ParseFloat(casted, 64)
 		return parsed
 	}
 	return 0
