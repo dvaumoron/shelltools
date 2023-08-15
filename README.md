@@ -9,4 +9,4 @@ Some [CLI](https://en.wikipedia.org/wiki/Command-line_interface) utilities to co
 
 Examples of basic usage :
 
-<img src="https://github.com/dvaumoron/shellutils/raw/main/screenshot/shelltools-screenshot.png">
+<img src="https://raw.githubusercontent.com/dvaumoron/shelltools/main/screenshot/shelltools-screenshot.png">
