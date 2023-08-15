@@ -25,6 +25,7 @@ import (
 	"os"
 
 	"github.com/antonmedv/expr"
+	"github.com/dvaumoron/shelltools/common"
 	"github.com/spf13/cobra"
 )
 
@@ -49,16 +50,11 @@ func jsonWhereWithInit(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	src := os.Stdin
-	if len(args) != 1 {
-		if filePath := args[1]; filePath != "-" {
-			src, err := os.Open(filePath)
-			if err != nil {
-				return err
-			}
-			defer src.Close()
-		}
+	src, closer, err := common.GetSource(args, 1)
+	if err != nil {
+		return err
 	}
+	defer closer()
 
 	return jsonWhere(pred, src)
 }

@@ -26,6 +26,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/dvaumoron/shelltools/common"
 	"github.com/spf13/cobra"
 )
 
@@ -45,21 +46,16 @@ func main() {
 }
 
 func lineToJsonWithInit(cmd *cobra.Command, args []string) error {
-	columns := spaceSplitter(args[0]) // TODO make this optional with autonaming of column (increment or from first line)
+	columns := common.SpaceSplitter(args[0]) // TODO make this optional with autonaming of column (increment or from first line)
 
-	src := os.Stdin
-	if len(args) != 1 {
-		if filePath := args[1]; filePath != "-" {
-			src, err := os.Open(filePath)
-			if err != nil {
-				return err
-			}
-			defer src.Close()
-		}
+	src, closer, err := common.GetSource(args, 1)
+	if err != nil {
+		return err
 	}
+	defer closer()
 
 	sep := " " // TODO add an optional flag to change this default
-	splitter := spaceSplitter
+	splitter := common.SpaceSplitter
 	if sep != " " {
 		splitter = func(rawValues string) []string {
 			return cleannedSplit(rawValues, sep)
@@ -68,17 +64,6 @@ func lineToJsonWithInit(cmd *cobra.Command, args []string) error {
 
 	skipLines := 0 // TODO add an optional flag to change this default
 	return lineToJson(columns, splitter, skipLines, src)
-}
-
-func spaceSplitter(rawValues string) []string {
-	splitted := strings.Split(rawValues, " ")
-	values := make([]string, 0, len(splitted))
-	for _, value := range splitted {
-		if value != "" {
-			values = append(values, value)
-		}
-	}
-	return slices.Clip(values)
 }
 
 func cleannedSplit(rawValues string, sep string) []string {

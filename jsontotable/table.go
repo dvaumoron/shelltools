@@ -23,12 +23,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"slices"
 	"strconv"
 	"strings"
 
+	"github.com/dvaumoron/shelltools/common"
 	"github.com/spf13/cobra"
 )
+
+type tableBuilder = func([]int, [][]string) string
 
 func main() {
 	cmd := cobra.Command{
@@ -46,69 +48,90 @@ func main() {
 }
 
 func jsonToTableWithInit(cmd *cobra.Command, args []string) error {
-	columns := spaceSplitter(args[0]) // TODO make this optional based on order of attribute in first object
-	// TODO add an optional flag to output simple space separate value
-	// TODO add an optional flag to sort on a column (with an int converted version)
-	// TODO add an optional flag to limit number of line to output
+	columns := common.SpaceSplitter(args[0]) // TODO make this optional based on order of attribute in first object
 
-	src := os.Stdin
-	if len(args) != 1 {
-		if filePath := args[1]; filePath != "-" {
-			src, err := os.Open(filePath)
-			if err != nil {
-				return err
-			}
-			defer src.Close()
-		}
+	src, closer, err := common.GetSource(args, 1)
+	if err != nil {
+		return err
 	}
-	return jsonToTable(columns, src)
+	defer closer()
+
+	simple := false        // TODO add an optional flag to output simple space separate value
+	skipHeader := false    // TODO add an optional flag to skip header
+	displayLineNum := true // TODO add an optional flag to change displayLineNum default
+	builder := buildTable
+	if simple {
+		builder = buildLines
+	}
+	return jsonToTable(columns, src, skipHeader, displayLineNum, builder)
 }
 
-func spaceSplitter(rawValues string) []string {
-	splitted := strings.Split(rawValues, " ")
-	values := make([]string, 0, len(splitted))
-	for _, value := range splitted {
-		if value != "" {
-			values = append(values, value)
-		}
+func jsonToTable(columns []string, src *os.File, skipHeader bool, displayLineNum bool, builder tableBuilder) error {
+	lineSize, table := initLineSizeAndTable(skipHeader, displayLineNum, columns)
+	initLine := initBasicLine
+	if displayLineNum {
+		initLine = initLineWithIndex
 	}
-	return slices.Clip(values)
-}
 
-func jsonToTable(columns []string, src *os.File) error {
 	scanner := bufio.NewScanner(src)
-
-	capacity := len(columns) + 1
-	header := make([]string, capacity)
-	header[0] = "#"
-	copy(header[1:], columns)
-
-	table := [][]string{header}
 	for index := 0; scanner.Scan(); index++ {
 		var jsonObject map[string]any
 		if err := json.Unmarshal(scanner.Bytes(), &jsonObject); err != nil {
 			return err
 		}
-		line := make([]string, 1, capacity)
-		line[0] = strconv.Itoa(index)
+		line := initLine(lineSize, index)
 		for _, column := range columns {
-			line = append(line, fmt.Sprint(jsonObject[column]))
+			line = append(line, common.ExtractString(jsonObject, column))
 		}
 		table = append(table, line)
 	}
 	if err := scanner.Err(); err != nil {
 		return err
 	}
-	return displayTable(capacity, table)
+	return display(lineSize, builder, table)
 }
 
-func displayTable(numColumns int, table [][]string) error {
+func initLineSizeAndTable(skipHeader bool, displayLineNum bool, columns []string) (int, [][]string) {
+	lineSize := len(columns)
+	if displayLineNum {
+		lineSize++
+	}
+	if skipHeader {
+		return lineSize, [][]string{}
+	}
+	if displayLineNum {
+		header := make([]string, lineSize)
+		header[0] = "#"
+		copy(header[1:], columns)
+		return lineSize, [][]string{header}
+	}
+	return lineSize, [][]string{columns}
+}
+
+func initBasicLine(lineSize int, index int) []string {
+	return make([]string, 0, lineSize)
+}
+
+func initLineWithIndex(lineSize int, index int) []string {
+	line := make([]string, 1, lineSize)
+	line[0] = strconv.Itoa(index)
+	return line
+}
+
+func display(numColumns int, builder tableBuilder, table [][]string) error {
 	maxColumnSizes := make([]int, numColumns)
 	for _, line := range table {
 		for index, value := range line {
 			maxColumnSizes[index] = max(len([]rune(value)), maxColumnSizes[index])
 		}
 	}
+
+	output := builder(maxColumnSizes, table)
+	_, err := os.Stdout.WriteString(output)
+	return err
+}
+
+func buildTable(maxColumnSizes []int, table [][]string) string {
 	interline := buildInterline(maxColumnSizes)
 
 	var outputBuilder strings.Builder
@@ -117,21 +140,19 @@ func displayTable(numColumns int, table [][]string) error {
 		if index == 1 {
 			outputBuilder.WriteString(interline)
 		}
-		outputBuilder.WriteByte('+')
+		outputBuilder.WriteByte('|')
 		for index2, value := range line {
 			outputBuilder.WriteByte(' ')
 			outputBuilder.WriteString(value)
 			for counter := len([]rune(value)); counter < maxColumnSizes[index2]; counter++ {
 				outputBuilder.WriteByte(' ')
 			}
-			outputBuilder.WriteString(" +")
+			outputBuilder.WriteString(" |")
 		}
 		outputBuilder.WriteByte('\n')
 	}
 	outputBuilder.WriteString(interline)
-
-	_, err := os.Stdout.WriteString(outputBuilder.String())
-	return err
+	return outputBuilder.String()
 }
 
 func buildInterline(maxColumnSizes []int) string {
@@ -146,4 +167,19 @@ func buildInterline(maxColumnSizes []int) string {
 	}
 	builder.WriteByte('\n')
 	return builder.String()
+}
+
+func buildLines(maxColumnSizes []int, table [][]string) string {
+	var outputBuilder strings.Builder
+	for _, line := range table {
+		for index, value := range line {
+			outputBuilder.WriteString(value)
+			for counter := len([]rune(value)); counter < maxColumnSizes[index]; counter++ {
+				outputBuilder.WriteByte(' ')
+			}
+			outputBuilder.WriteByte(' ')
+		}
+		outputBuilder.WriteByte('\n')
+	}
+	return outputBuilder.String()
 }
