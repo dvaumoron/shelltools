@@ -24,7 +24,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"sort"
+	"slices"
 	"strconv"
 
 	"github.com/dvaumoron/shelltools/common"
@@ -36,20 +36,17 @@ type attrAndData[T cmp.Ordered] struct {
 	data []byte
 }
 
-type byAttr[T cmp.Ordered] []attrAndData[T]
+func cmpAsc[T cmp.Ordered](a attrAndData[T], b attrAndData[T]) int {
+	return cmp.Compare(a.attr, b.attr)
+}
 
-func (a byAttr[T]) Len() int           { return len(a) }
-func (a byAttr[T]) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
-func (a byAttr[T]) Less(i, j int) bool { return a[i].attr < a[j].attr }
-
-type byAttrDesc[T cmp.Ordered] []attrAndData[T]
-
-func (a byAttrDesc[T]) Len() int           { return len(a) }
-func (a byAttrDesc[T]) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
-func (a byAttrDesc[T]) Less(i, j int) bool { return a[i].attr > a[j].attr }
+func cmpDesc[T cmp.Ordered](a attrAndData[T], b attrAndData[T]) int {
+	return -cmp.Compare(a.attr, b.attr)
+}
 
 var extractAsNumber bool
 var descOrder bool
+var stable bool
 
 func main() {
 	cmd := cobra.Command{
@@ -64,6 +61,7 @@ without FILE or if FILE is -, read from standard input`,
 	cmdFlags := cmd.Flags()
 	cmdFlags.BoolVarP(&extractAsNumber, "number", "n", false, "process values in ordering column as number")
 	cmdFlags.BoolVarP(&descOrder, "desc", "d", false, "sort in descending order")
+	cmdFlags.BoolVarP(&stable, "stable", "s", false, "use a stable sort")
 
 	if err := cmd.Execute(); err != nil {
 		fmt.Println(err)
@@ -102,10 +100,15 @@ func orderBy[T cmp.Ordered](column string, src *os.File, extracter func(map[stri
 		attrAndDatas = append(attrAndDatas, attrAndData[T]{attr: extracter(jsonObject), data: b})
 	}
 
+	sortFunc := slices.SortFunc[[]attrAndData[T], attrAndData[T]]
+	if stable {
+		sortFunc = slices.SortStableFunc[[]attrAndData[T], attrAndData[T]]
+	}
+
 	if descOrder {
-		sort.Sort(byAttrDesc[T](attrAndDatas))
+		sortFunc(attrAndDatas, cmpDesc[T])
 	} else {
-		sort.Sort(byAttr[T](attrAndDatas))
+		sortFunc(attrAndDatas, cmpAsc[T])
 	}
 
 	endLine := []byte{'\n'}
