@@ -55,9 +55,10 @@ func main() {
 	cmd := cobra.Command{
 		Use:   "jsonorderby COLUMN [FILE]",
 		Short: "jsonorderby sort JSON object from FILE on COLUMN field.",
-		Long:  "todo",
-		Args:  cobra.RangeArgs(1, 2),
-		RunE:  jsonOrderByWithInit,
+		Long: `jsonorderby sort JSON object from FILE on COLUMN field,
+without FILE or if FILE is -, read the standard input`,
+		Args: cobra.RangeArgs(1, 2),
+		RunE: jsonOrderByWithInit,
 	}
 
 	cmdFlags := cmd.Flags()
