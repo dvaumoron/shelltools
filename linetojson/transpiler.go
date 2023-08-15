@@ -139,7 +139,7 @@ func lineToJson(namer columnNamer, splitter func(string) []string, src *os.File)
 		}
 
 		for scanner.Scan() {
-			splitted := splitter(scanner.Text())
+			splitted = splitter(scanner.Text())
 			current := toJsonObject(splitted, capacity, namer)
 			if err := encoder.Encode(current); err != nil {
 				return err
