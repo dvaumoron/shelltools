@@ -24,20 +24,67 @@ import (
 	"fmt"
 	"os"
 	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/dvaumoron/shelltools/common"
 	"github.com/spf13/cobra"
 )
 
+type columnNamer interface {
+	Init([]string) (int, bool)
+	Name(int) string
+}
+
+type numberNamer struct {
+	names []string
+}
+
+func (n *numberNamer) Init(values []string) (int, bool) {
+	size := len(values)
+	n.Name(size - 1)
+	return size, true
+}
+
+func (n *numberNamer) Name(index int) string {
+	if size := len(n.names); size <= index {
+		for targetSize := index + 1; size < targetSize; size++ {
+			n.names = append(n.names, "col"+strconv.Itoa(size))
+		}
+	}
+	return n.names[index]
+}
+
+type fromFirstNamer struct {
+	numberNamer // same implementation of Name
+}
+
+func (f *fromFirstNamer) Init(values []string) (int, bool) {
+	size := len(values)
+	f.names = values
+	return size, false
+}
+
+var separator string
+var columns []string
+var fromFirst bool
+
 func main() {
 	cmd := cobra.Command{
-		Use:   "linetojson COLUMNS [FILE]",
+		Use:   "linetojson [FILE]",
 		Short: "linetojson convert each line from FILE in a JSON object.",
-		Long:  "todo",
-		Args:  cobra.RangeArgs(1, 2),
-		RunE:  lineToJsonWithInit,
+		Long: `linetojson convert each line from FILE in a JSON object, without flag:
+- create the column name as 'col#'
+- use space as separator`,
+		Args: cobra.MaximumNArgs(1),
+		RunE: lineToJsonWithInit,
 	}
+
+	cmdFlags := cmd.Flags()
+	cmdFlags.StringVarP(&separator, "separator", "s", " ", "separator for value in line")
+	cmdFlags.BoolVarP(&fromFirst, "first", "f", false, "initialize column name with first line")
+	cmdFlags.StringSliceVarP(&columns, "columns", "c", nil, "name of the columns (comma separated)")
+	cmd.MarkFlagsMutuallyExclusive("first", "columns")
 
 	if err := cmd.Execute(); err != nil {
 		fmt.Println(err)
@@ -46,54 +93,68 @@ func main() {
 }
 
 func lineToJsonWithInit(cmd *cobra.Command, args []string) error {
-	columns := common.SpaceSplitter(args[0]) // TODO make this optional with autonaming of column (increment or from first line)
+	trimSlice(columns)
 
-	src, closer, err := common.GetSource(args, 1)
+	src, closer, err := common.GetSource(args, 0)
 	if err != nil {
 		return err
 	}
 	defer closer()
 
-	sep := " " // TODO add an optional flag to change this default
 	splitter := common.SpaceSplitter
-	if sep != " " {
-		splitter = func(rawValues string) []string {
-			return cleannedSplit(rawValues, sep)
-		}
+	if separator != " " {
+		splitter = trimSplitter
 	}
 
-	skipLines := 0 // TODO add an optional flag to change this default
-	return lineToJson(columns, splitter, skipLines, src)
+	var namer columnNamer = &numberNamer{names: columns} // if not enough name, fall back to 'col#'
+	if fromFirst {
+		namer = &fromFirstNamer{}
+	}
+	return lineToJson(namer, splitter, src)
 }
 
-func cleannedSplit(rawValues string, sep string) []string {
-	splitted := strings.Split(rawValues, sep)
-	for index, value := range splitted {
-		splitted[index] = strings.TrimSpace(value)
-	}
+func trimSplitter(rawValues string) []string {
+	splitted := strings.Split(rawValues, separator)
+	trimSlice(splitted)
 	return slices.Clip(splitted)
 }
 
-func lineToJson(columns []string, splitter func(string) []string, skipLines int, src *os.File) error {
-	scanner := bufio.NewScanner(src)
-	for skipped := 0; skipped < skipLines; skipped++ {
-		scanner.Scan()
+func trimSlice(values []string) {
+	for index, value := range values {
+		values[index] = strings.TrimSpace(value)
 	}
+}
 
-	capacity := len(columns)
+func lineToJson(namer columnNamer, splitter func(string) []string, src *os.File) error {
+	scanner := bufio.NewScanner(src)
 	encoder := json.NewEncoder(os.Stdout)
-	for scanner.Scan() {
-		index := 0
-		current := make(map[string]string, capacity)
-		for _, value := range splitter(scanner.Text()) {
-			if value != "" {
-				current[columns[index]] = value
-				index++
+	if scanner.Scan() {
+		splitted := splitter(scanner.Text())
+		capacity, add := namer.Init(splitted)
+		if add {
+			first := toJsonObject(splitted, capacity, namer)
+			if err := encoder.Encode(first); err != nil {
+				return err
 			}
 		}
-		if err := encoder.Encode(current); err != nil {
-			return err
+
+		for scanner.Scan() {
+			splitted := splitter(scanner.Text())
+			current := toJsonObject(splitted, capacity, namer)
+			if err := encoder.Encode(current); err != nil {
+				return err
+			}
 		}
 	}
 	return scanner.Err()
+}
+
+func toJsonObject(splitted []string, capacity int, namer columnNamer) map[string]string {
+	jsonObject := make(map[string]string, capacity)
+	for index, value := range splitted {
+		if value != "" {
+			jsonObject[namer.Name(index)] = value
+		}
+	}
+	return jsonObject
 }
