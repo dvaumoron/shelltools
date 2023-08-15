@@ -73,7 +73,8 @@ func main() {
 	cmd := cobra.Command{
 		Use:   "linetojson [FILE]",
 		Short: "linetojson convert each line from FILE in a JSON object.",
-		Long: `linetojson convert each line from FILE in a JSON object, without flag:
+		Long: `linetojson convert each line from FILE in a JSON object,
+without FILE or if FILE is -, read the standard input, without flag:
 - create the column name as 'col#'
 - use space as separator`,
 		Args: cobra.MaximumNArgs(1),
