@@ -66,15 +66,16 @@ func (f *fromFirstNamer) Init(values []string) (int, bool) {
 }
 
 var separator string
-var columns []string
 var fromFirst bool
+var columns []string
 
 func main() {
 	cmd := cobra.Command{
 		Use:   "linetojson [FILE]",
 		Short: "linetojson convert each line from FILE in a JSON object.",
 		Long: `linetojson convert each line from FILE in a JSON object,
-without FILE or if FILE is -, read the standard input, without flag:
+without FILE or if FILE is -, read from standard input,
+default behaviour :
 - create the column name as 'col#'
 - use space as separator`,
 		Args: cobra.MaximumNArgs(1),
@@ -94,7 +95,7 @@ without FILE or if FILE is -, read the standard input, without flag:
 }
 
 func lineToJsonWithInit(cmd *cobra.Command, args []string) error {
-	trimSlice(columns)
+	common.TrimSlice(columns)
 
 	src, closer, err := common.GetSource(args, 0)
 	if err != nil {
@@ -116,14 +117,8 @@ func lineToJsonWithInit(cmd *cobra.Command, args []string) error {
 
 func trimSplitter(rawValues string) []string {
 	splitted := strings.Split(rawValues, separator)
-	trimSlice(splitted)
+	common.TrimSlice(splitted)
 	return slices.Clip(splitted)
-}
-
-func trimSlice(values []string) {
-	for index, value := range values {
-		values[index] = strings.TrimSpace(value)
-	}
 }
 
 func lineToJson(namer columnNamer, splitter func(string) []string, src *os.File) error {

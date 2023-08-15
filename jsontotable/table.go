@@ -32,14 +32,26 @@ import (
 
 type tableBuilder = func([]int, [][]string) string
 
+var columns []string
+var simple bool
+var skipHeader bool
+var hideLineNum bool
+
 func main() {
 	cmd := cobra.Command{
-		Use:   "jsontotable COLUMNS [FILE]",
+		Use:   "jsontotable [FILE]",
 		Short: "jsontotable display JSON object from FILE as a table.",
-		Long:  "todo",
-		Args:  cobra.RangeArgs(1, 2),
-		RunE:  jsonToTableWithInit,
+		Long: `jsontotable display JSON object from FILE as a table,
+without FILE or if FILE is -, read from standard input`,
+		Args: cobra.RangeArgs(1, 2),
+		RunE: jsonToTableWithInit,
 	}
+
+	cmdFlags := cmd.Flags()
+	cmdFlags.StringSliceVarP(&columns, "columns", "c", nil, "name of the columns (comma separated)")
+	cmdFlags.BoolVarP(&simple, "simple", "s", false, "simplify display (no ascii frame)")
+	cmdFlags.BoolVarP(&skipHeader, "no-header", "n", false, "do not display header")
+	cmdFlags.BoolVarP(&hideLineNum, "hide-line-number", "h", false, "hide line number")
 
 	if err := cmd.Execute(); err != nil {
 		fmt.Println(err)
@@ -48,22 +60,19 @@ func main() {
 }
 
 func jsonToTableWithInit(cmd *cobra.Command, args []string) error {
-	columns := common.SpaceSplitter(args[0]) // TODO make this optional based on order of attribute in first object
+	common.TrimSlice(columns)
 
-	src, closer, err := common.GetSource(args, 1)
+	src, closer, err := common.GetSource(args, 0)
 	if err != nil {
 		return err
 	}
 	defer closer()
 
-	simple := false        // TODO add an optional flag to output simple space separate value
-	skipHeader := false    // TODO add an optional flag to skip header
-	displayLineNum := true // TODO add an optional flag to change displayLineNum default
 	builder := buildTable
 	if simple {
 		builder = buildLines
 	}
-	return jsonToTable(columns, src, skipHeader, displayLineNum, builder)
+	return jsonToTable(columns, src, skipHeader, !hideLineNum, builder)
 }
 
 func jsonToTable(columns []string, src *os.File, skipHeader bool, displayLineNum bool, builder tableBuilder) error {

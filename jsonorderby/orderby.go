@@ -56,7 +56,7 @@ func main() {
 		Use:   "jsonorderby COLUMN [FILE]",
 		Short: "jsonorderby sort JSON object from FILE on COLUMN field.",
 		Long: `jsonorderby sort JSON object from FILE on COLUMN field,
-without FILE or if FILE is -, read the standard input`,
+without FILE or if FILE is -, read from standard input`,
 		Args: cobra.RangeArgs(1, 2),
 		RunE: jsonOrderByWithInit,
 	}

@@ -25,6 +25,12 @@ import (
 	"strings"
 )
 
+func TrimSlice(values []string) {
+	for index, value := range values {
+		values[index] = strings.TrimSpace(value)
+	}
+}
+
 func GetSource(args []string, pos int) (*os.File, func() error, error) {
 	src := os.Stdin
 	closer := noActionCloser
