@@ -10,3 +10,5 @@ Some [CLI](https://en.wikipedia.org/wiki/Command-line_interface) utilities to co
 Examples of basic usage :
 
 <img src="https://raw.githubusercontent.com/dvaumoron/shelltools/main/screenshot/shelltools-screenshot.png">
+
+For more serious stuff, look at [trdsql](https://github.com/noborus/trdsql)
