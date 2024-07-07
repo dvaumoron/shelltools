@@ -2,7 +2,7 @@
 
 Some [CLI](https://en.wikipedia.org/wiki/Command-line_interface) utilities to combine within shell (inspired by [Nushell](https://www.nushell.sh/)).
 
-Done for fun, for more serious stuff, look at [trdsql](https://github.com/noborus/trdsql).
+For more advanced SQL related need, look at [trdsql](https://github.com/noborus/trdsql).
 
 Available utilities:
 
@@ -10,6 +10,7 @@ Available utilities:
 2. jsonwhere
 3. jsonorderby
 4. jsontotable
+5. cmdwithall
 
 Examples of basic usage :
 
