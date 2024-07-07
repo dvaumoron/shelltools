@@ -27,16 +27,19 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/dvaumoron/shelltools/common"
 	"github.com/spf13/cobra"
+
+	"github.com/dvaumoron/shelltools/pkg/common"
 )
 
 type tableBuilder = func([]int, [][]string) string
 
-var columns []string
-var simple bool
-var skipHeader bool
-var displayLineNum bool
+var (
+	columns        []string
+	simple         bool
+	skipHeader     bool
+	displayLineNum bool
+)
 
 func main() {
 	cmd := cobra.Command{

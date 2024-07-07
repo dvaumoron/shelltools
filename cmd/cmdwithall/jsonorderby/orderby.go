@@ -27,8 +27,9 @@ import (
 	"slices"
 	"strconv"
 
-	"github.com/dvaumoron/shelltools/common"
 	"github.com/spf13/cobra"
+
+	"github.com/dvaumoron/shelltools/pkg/common"
 )
 
 type attrAndData[T cmp.Ordered] struct {
@@ -44,9 +45,11 @@ func cmpDesc[T cmp.Ordered](a attrAndData[T], b attrAndData[T]) int {
 	return -cmp.Compare(a.attr, b.attr)
 }
 
-var extractAsNumber bool
-var descOrder bool
-var stable bool
+var (
+	descOrder       bool
+	extractAsNumber bool
+	stable          bool
+)
 
 func main() {
 	cmd := cobra.Command{
@@ -79,16 +82,16 @@ func jsonOrderByWithInit(cmd *cobra.Command, args []string) error {
 	defer closer()
 
 	if extractAsNumber {
-		return orderBy(column, src, func(jsonObject map[string]any) float64 {
+		return orderBy(src, func(jsonObject map[string]any) float64 {
 			return extractFloat(jsonObject, column)
 		})
 	}
-	return orderBy(column, src, func(jsonObject map[string]any) string {
+	return orderBy(src, func(jsonObject map[string]any) string {
 		return common.ExtractString(jsonObject, column)
 	})
 }
 
-func orderBy[T cmp.Ordered](column string, src *os.File, extracter func(map[string]any) T) error {
+func orderBy[T cmp.Ordered](src *os.File, extracter func(map[string]any) T) error {
 	var attrAndDatas []attrAndData[T]
 	scanner := bufio.NewScanner(src)
 	for scanner.Scan() {

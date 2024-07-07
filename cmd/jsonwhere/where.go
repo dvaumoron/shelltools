@@ -25,8 +25,9 @@ import (
 	"os"
 
 	"github.com/antonmedv/expr"
-	"github.com/dvaumoron/shelltools/common"
 	"github.com/spf13/cobra"
+
+	"github.com/dvaumoron/shelltools/pkg/common"
 )
 
 func main() {

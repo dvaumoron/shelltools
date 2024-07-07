@@ -21,14 +21,11 @@ package common
 import (
 	"fmt"
 	"os"
-	"slices"
 	"strings"
 )
 
-func TrimSlice(values []string) {
-	for index, value := range values {
-		values[index] = strings.TrimSpace(value)
-	}
+func ExtractString(jsonObject map[string]any, column string) string {
+	return fmt.Sprint(jsonObject[column])
 }
 
 func GetSource(args []string, pos int) (*os.File, func() error, error) {
@@ -51,17 +48,8 @@ func noActionCloser() error {
 	return nil
 }
 
-func SpaceSplitter(rawValues string) []string {
-	splitted := strings.Split(rawValues, " ")
-	values := make([]string, 0, len(splitted))
-	for _, value := range splitted {
-		if value != "" {
-			values = append(values, value)
-		}
+func TrimSlice(values []string) {
+	for index, value := range values {
+		values[index] = strings.TrimSpace(value)
 	}
-	return slices.Clip(values)
-}
-
-func ExtractString(jsonObject map[string]any, column string) string {
-	return fmt.Sprint(jsonObject[column])
 }

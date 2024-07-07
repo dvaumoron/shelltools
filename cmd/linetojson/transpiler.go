@@ -27,8 +27,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/dvaumoron/shelltools/common"
 	"github.com/spf13/cobra"
+
+	"github.com/dvaumoron/shelltools/pkg/common"
 )
 
 type columnNamer interface {
@@ -65,9 +66,11 @@ func (f *fromFirstNamer) Init(values []string) (int, bool) {
 	return size, false
 }
 
-var separator string
-var fromFirst bool
-var columns []string
+var (
+	columns   []string
+	fromFirst bool
+	separator string
+)
 
 func main() {
 	cmd := cobra.Command{
@@ -103,7 +106,7 @@ func lineToJsonWithInit(cmd *cobra.Command, args []string) error {
 	}
 	defer closer()
 
-	splitter := common.SpaceSplitter
+	splitter := spaceSplitter
 	if separator != " " {
 		splitter = trimSplitter
 	}
@@ -143,6 +146,17 @@ func lineToJson(namer columnNamer, splitter func(string) []string, src *os.File)
 		}
 	}
 	return scanner.Err()
+}
+
+func spaceSplitter(rawValues string) []string {
+	splitted := strings.Split(rawValues, " ")
+	values := make([]string, 0, len(splitted))
+	for _, value := range splitted {
+		if value != "" {
+			values = append(values, value)
+		}
+	}
+	return slices.Clip(values)
 }
 
 func toJsonObject(splitted []string, capacity int, namer columnNamer) map[string]string {
