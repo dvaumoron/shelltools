@@ -145,47 +145,6 @@ release:
 
 changelog:
   use: github-native
-  sort: asc
-  filters:
-    exclude:
-      - "^test:"
-
-checksum:
-  name_template: "{{ .ProjectName }}_{{ .Tag }}_checksums.txt"
-  algorithm: sha256
-
-signs:
-  - cmd: cosign
-    env:
-      - COSIGN_EXPERIMENTAL=1
-    signature: "${artifact}.sig"
-    certificate: "${artifact}.pem"
-    args:
-      - "sign-blob"
-      - "--oidc-issuer=https://token.actions.githubusercontent.com"
-      - "--output-certificate=${certificate}"
-      - "--output-signature=${signature}"
-      - "${artifact}"
-      - "--yes"
-    artifacts: all
-    output: true
-
-  - artifacts: all
-    signature: "${artifact}.gpgsig"
-    id: gpg
-    cmd: gpg
-    args:
-      - "--pinentry-mode"
-      - "loopback"
-      - "--batch"
-      - "-u"
-      - "{{ .Env.GPG_FINGERPRINT }}"
-      - "--passphrase"
-      - "{{ .Env.GPG_PASSPHRASE }}"
-      - "--output"
-      - "${signature}"
-      - "--detach-sign"
-      - "${artifact}"
 
 nfpms:
   - file_name_template: "{{ .ProjectName }}_{{- .Tag }}_{{ .Arch }}"
