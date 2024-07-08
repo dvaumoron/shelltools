@@ -11,6 +11,7 @@ Available utilities:
 3. jsonorderby
 4. jsontotable
 5. cmdwithall
+6. cmdforeach
 
 Examples of basic usage :
 

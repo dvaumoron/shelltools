@@ -19,6 +19,7 @@
 package common
 
 import (
+	"bufio"
 	"fmt"
 	"os"
 	"strings"
@@ -46,6 +47,15 @@ func GetSource(args []string, pos int) (*os.File, func() error, error) {
 
 func noActionCloser() error {
 	return nil
+}
+
+func TrimmedLines(src *os.File) ([]string, error) {
+	splitted := []string{}
+	scanner := bufio.NewScanner(src)
+	for scanner.Scan() {
+		splitted = append(splitted, strings.TrimSpace(scanner.Text()))
+	}
+	return splitted, scanner.Err()
 }
 
 func TrimSlice(values []string) {

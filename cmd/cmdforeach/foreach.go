@@ -30,12 +30,12 @@ import (
 
 func main() {
 	cmd := cobra.Command{
-		Use:   "cmdwithall [CMD] [ARG ...] [FILE]",
-		Short: "cmdwithall run CMD adding more args from FILE.",
-		Long: `cmdwithall run CMD adding more args from FILE,
+		Use:   "cmdforeach [CMD] [ARG ...] [FILE]",
+		Short: "cmdforeach run one CMD augmented with each line from FILE.",
+		Long: `cmdforeach run one CMD augmented with each line from FILE,
 if FILE is -, read from standard input`,
 		Args: cobra.MinimumNArgs(2),
-		RunE: cmdWithAllWithInit,
+		RunE: cmdForEachWithInit,
 	}
 
 	if err := cmd.Execute(); err != nil {
@@ -44,7 +44,7 @@ if FILE is -, read from standard input`,
 	}
 }
 
-func cmdWithAllWithInit(cmd *cobra.Command, args []string) error {
+func cmdForEachWithInit(cmd *cobra.Command, args []string) error {
 	last := len(args) - 1
 	src, closer, err := common.GetSource(args, last)
 	if err != nil {
@@ -52,18 +52,22 @@ func cmdWithAllWithInit(cmd *cobra.Command, args []string) error {
 	}
 	defer closer()
 
-	return cmdWithAll(args[0], args[1:last], src)
+	return cmdForEach(args[0], args[1:last], src)
 }
 
-func cmdWithAll(cmdName string, cmdArgs []string, src *os.File) error {
+func cmdForEach(cmdName string, cmdArgs []string, src *os.File) error {
 	lines, err := common.TrimmedLines(src)
 	if err != nil {
 		return err
 	}
 
-	cmdArgs = append(cmdArgs, lines...)
+	last := len(cmdArgs)
+	cmdArgs = append(cmdArgs, "")
+	for _, arg := range lines {
+		cmdArgs[last] = arg
 
-	cmdproxy.Run(cmdName, cmdArgs)
+		cmdproxy.Run(cmdName, cmdArgs)
+	}
 
 	return nil
 }
