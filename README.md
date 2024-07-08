@@ -16,3 +16,14 @@ Available utilities:
 Examples of basic usage :
 
 <img src="https://raw.githubusercontent.com/dvaumoron/shelltools/main/screenshot/shelltools-screenshot.png">
+
+## Getting started
+
+Install via [Homebrew](https://brew.sh)
+
+```console
+$ brew tap dvaumoron/tap
+$ brew install shelltools
+```
+
+Or get the [last binary](https://github.com/dvaumoron/shelltools/releases) depending on your OS.
