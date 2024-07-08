@@ -13,7 +13,7 @@ Available utilities:
 5. cmdwithall
 6. cmdforeach
 
-Examples of basic usage :
+Examples of basic usage (all command are self documented with `--help`) :
 
 <img src="https://raw.githubusercontent.com/dvaumoron/shelltools/main/screenshot/shelltools-screenshot.png">
 
