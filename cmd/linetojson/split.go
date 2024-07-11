@@ -64,13 +64,7 @@ func trimSplitter(rawValues string) []string {
 	return slices.Clip(splitted)
 }
 
-func initColumnEndsFromName(rawValues string, names []string, skippeds []int) error {
-	if len(names) == 0 {
-		initColumnEndsFromSpace(rawValues, skippeds)
-
-		return nil
-	}
-
+func initColumnEndsFromName(rawValues string, names []string) error {
 	columnsNumber := len(names)
 	columnEnds = make([]int, 0, columnsNumber)
 	for i := 1; i < columnsNumber; i++ {

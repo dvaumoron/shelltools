@@ -127,9 +127,9 @@ func lineToJson(namer columnNamer, splitter func(string) []string, src *os.File)
 	if scanner.Scan() {
 		rawValues := scanner.Text()
 		if tableMode {
-			if fromFirst {
+			if fromFirst || len(columns) == 0 {
 				initColumnEndsFromSpace(rawValues, skipped)
-			} else if err := initColumnEndsFromName(rawValues, columns, skipped); err != nil {
+			} else if err := initColumnEndsFromName(rawValues, columns); err != nil {
 				return err
 			}
 		}
