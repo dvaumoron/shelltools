@@ -26,6 +26,7 @@ import (
 	"os"
 	"slices"
 	"strconv"
+	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -48,6 +49,7 @@ func cmpDesc[T cmp.Ordered](a attrAndData[T], b attrAndData[T]) int {
 var (
 	descOrder       bool
 	extractAsNumber bool
+	ignoreCase      bool
 	stable          bool
 )
 
@@ -65,6 +67,8 @@ without FILE or if FILE is -, read from standard input`,
 	cmdFlags.BoolVarP(&extractAsNumber, "number", "n", false, "process values in ordering column as number")
 	cmdFlags.BoolVarP(&descOrder, "desc", "d", false, "sort in descending order")
 	cmdFlags.BoolVarP(&stable, "stable", "s", false, "use a stable sort")
+	cmdFlags.BoolVarP(&ignoreCase, "ignore-case", "i", false, "ignore case in ordering column")
+	cmd.MarkFlagsMutuallyExclusive("number", "ignore-case")
 
 	if err := cmd.Execute(); err != nil {
 		fmt.Println(err)
@@ -81,9 +85,14 @@ func jsonOrderByWithInit(cmd *cobra.Command, args []string) error {
 	}
 	defer closer()
 
-	if extractAsNumber {
+	switch {
+	case extractAsNumber:
 		return orderBy(src, func(jsonObject map[string]any) float64 {
 			return extractFloat(jsonObject, column)
+		})
+	case ignoreCase:
+		return orderBy(src, func(jsonObject map[string]any) string {
+			return strings.ToLower(common.ExtractString(jsonObject, column))
 		})
 	}
 	return orderBy(src, func(jsonObject map[string]any) string {
