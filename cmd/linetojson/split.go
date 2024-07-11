@@ -33,8 +33,6 @@ var (
 	errColumnNotFound = errors.New("column name not found")
 )
 
-type splitFunc = func(string) []string
-
 func lengthSplitter(rawValues string) []string {
 	lastColumnIndex := len(columnEnds)
 	splitted := make([]string, lastColumnIndex+1)
