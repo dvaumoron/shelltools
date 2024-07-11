@@ -23,9 +23,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"slices"
 	"strconv"
-	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -33,7 +31,7 @@ import (
 )
 
 type columnNamer interface {
-	Init([]string) (int, bool)
+	Init([]string)
 	Name(int) string
 }
 
@@ -41,10 +39,8 @@ type numberNamer struct {
 	names []string
 }
 
-func (n *numberNamer) Init(values []string) (int, bool) {
-	size := len(values)
-	n.Name(size - 1)
-	return size, true
+func (n *numberNamer) Init(values []string) {
+	n.Name(len(values) - 1)
 }
 
 func (n *numberNamer) Name(index int) string {
@@ -60,16 +56,16 @@ type fromFirstNamer struct {
 	numberNamer // same implementation of Name
 }
 
-func (f *fromFirstNamer) Init(values []string) (int, bool) {
-	size := len(values)
+func (f *fromFirstNamer) Init(values []string) {
 	f.names = values
-	return size, false
 }
 
 var (
 	columns   []string
 	fromFirst bool
+	skipped   []int
 	separator string
+	tableMode bool
 )
 
 func main() {
@@ -89,7 +85,11 @@ default behaviour :
 	cmdFlags.StringVarP(&separator, "separator", "s", " ", "separator for value in line")
 	cmdFlags.BoolVarP(&fromFirst, "first", "f", false, "initialize column name with first line")
 	cmdFlags.StringSliceVarP(&columns, "columns", "c", nil, "name of the columns (comma separated)")
+	cmdFlags.BoolVarP(&tableMode, "table", "t", false, "split fixed size columns")
+	cmdFlags.IntSliceVarP(&skipped, "merge", "m", nil, "merge some columns (with following by number (zero based))")
 	cmd.MarkFlagsMutuallyExclusive("first", "columns")
+	cmd.MarkFlagsMutuallyExclusive("separator", "table")
+	cmd.MarkFlagsMutuallyExclusive("columns", "merge")
 
 	if err := cmd.Execute(); err != nil {
 		fmt.Println(err)
@@ -107,7 +107,10 @@ func lineToJsonWithInit(cmd *cobra.Command, args []string) error {
 	defer closer()
 
 	splitter := spaceSplitter
-	if separator != " " {
+	switch {
+	case tableMode:
+		splitter = lengthSplitter
+	case separator != " ":
 		splitter = trimSplitter
 	}
 
@@ -118,20 +121,22 @@ func lineToJsonWithInit(cmd *cobra.Command, args []string) error {
 	return lineToJson(namer, splitter, src)
 }
 
-func trimSplitter(rawValues string) []string {
-	splitted := strings.Split(rawValues, separator)
-	common.TrimSlice(splitted)
-	return slices.Clip(splitted)
-}
-
 func lineToJson(namer columnNamer, splitter func(string) []string, src *os.File) error {
 	scanner := bufio.NewScanner(src)
 	encoder := json.NewEncoder(os.Stdout)
 	if scanner.Scan() {
-		splitted := splitter(scanner.Text())
-		capacity, add := namer.Init(splitted)
-		if add {
-			first := toJsonObject(splitted, capacity, namer)
+		rawValues := scanner.Text()
+		if tableMode {
+			if fromFirst {
+				initColumnEndsFromSpace(rawValues, skipped)
+			} else if err := initColumnEndsFromName(rawValues, columns, skipped); err != nil {
+				return err
+			}
+		}
+		splitted := splitter(rawValues)
+		namer.Init(splitted)
+		if !fromFirst {
+			first := toJsonObject(splitted, namer)
 			if err := encoder.Encode(first); err != nil {
 				return err
 			}
@@ -139,7 +144,7 @@ func lineToJson(namer columnNamer, splitter func(string) []string, src *os.File)
 
 		for scanner.Scan() {
 			splitted = splitter(scanner.Text())
-			current := toJsonObject(splitted, capacity, namer)
+			current := toJsonObject(splitted, namer)
 			if err := encoder.Encode(current); err != nil {
 				return err
 			}
@@ -148,19 +153,8 @@ func lineToJson(namer columnNamer, splitter func(string) []string, src *os.File)
 	return scanner.Err()
 }
 
-func spaceSplitter(rawValues string) []string {
-	splitted := strings.Split(rawValues, " ")
-	values := make([]string, 0, len(splitted))
-	for _, value := range splitted {
-		if value != "" {
-			values = append(values, value)
-		}
-	}
-	return slices.Clip(values)
-}
-
-func toJsonObject(splitted []string, capacity int, namer columnNamer) map[string]string {
-	jsonObject := make(map[string]string, capacity)
+func toJsonObject(splitted []string, namer columnNamer) map[string]string {
+	jsonObject := make(map[string]string, len(splitted))
 	for index, value := range splitted {
 		if value != "" {
 			jsonObject[namer.Name(index)] = value
