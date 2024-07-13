@@ -22,30 +22,53 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/spf13/cobra"
-
 	"github.com/dvaumoron/shelltools/pkg/cmdproxy"
 	"github.com/dvaumoron/shelltools/pkg/common"
 )
 
-func main() {
-	cmd := cobra.Command{
-		Use:   "cmdforeach [CMD] [ARG ...] [FILE]",
-		Short: "cmdforeach run one CMD augmented with each line from FILE.",
-		Long: `cmdforeach run one CMD augmented with each line from FILE,
-if FILE is -, read from standard input`,
-		Args: cobra.MinimumNArgs(2),
-		RunE: cmdForEachWithInit,
-	}
+const (
+	errorMessage = `Error: %[1]s
+Usage:
+  cmdforeach [CMD] [ARG ...] [FILE] [flags]
 
-	if err := cmd.Execute(); err != nil {
-		fmt.Println(err)
+Flags:
+  -h, --help   help for cmdwithall
+
+%[1]s
+`
+
+	helpMessage = `cmdforeach run one CMD augmented with each line from FILE,
+if FILE is -, read from standard input
+
+Usage:
+  cmdforeach [CMD] [ARG ...] [FILE] [flags]
+
+Flags:
+  -h, --help   help for cmdforeach`
+)
+
+func main() {
+	if err := cmdForEachWithInit(os.Args[1:]); err != nil {
+		fmt.Printf(errorMessage, err)
 		os.Exit(1)
 	}
 }
 
-func cmdForEachWithInit(cmd *cobra.Command, args []string) error {
-	last := len(args) - 1
+func cmdForEachWithInit(args []string) error {
+	for _, arg := range args {
+		if arg == "-h" || arg == "--help" {
+			fmt.Println(helpMessage)
+
+			return nil
+		}
+	}
+
+	argLen := len(args)
+	if argLen < 2 {
+		return fmt.Errorf("requires at least 2 arg(s), only received %d", argLen)
+	}
+
+	last := argLen - 1
 	src, closer, err := common.GetSource(args, last)
 	if err != nil {
 		return err
