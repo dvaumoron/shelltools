@@ -12,6 +12,7 @@ Available utilities:
 4. jsontotable
 5. cmdwithall
 6. cmdforeach
+7. distinctline
 
 Examples of basic usage (all command are self documented with `--help`) :
 

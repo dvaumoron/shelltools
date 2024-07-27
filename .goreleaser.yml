@@ -5,6 +5,7 @@ before:
   hooks:
     - go get -u ./cmd/cmdforeach
     - go get -u ./cmd/cmdwithall
+    - go get -u ./cmd/distinctline
     - go get -u ./cmd/jsonorderby
     - go get -u ./cmd/jsontotable
     - go get -u ./cmd/jsonwhere
@@ -35,6 +36,26 @@ builds:
   - id: cmdwithall
     binary: cmdwithall
     main: ./cmd/cmdwithall
+    env:
+      - CGO_ENABLED=0
+    ldflags:
+      - -s -w -X main.version={{.Tag}}
+    goos:
+      - linux
+      - windows
+      - darwin
+      - freebsd
+      - openbsd
+      - solaris
+    goarch:
+      - "386"
+      - amd64
+      - arm
+      - arm64
+
+  - id: distinctline
+    binary: distinctline
+    main: ./cmd/distinctline
     env:
       - CGO_ENABLED=0
     ldflags:
