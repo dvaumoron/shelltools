@@ -11,11 +11,11 @@ Available utilities:
 1. linetojson
 2. jsonwhere
 3. jsonorderby
-4. jsontotable
-5. cmdwithall
-6. cmdforeach
-7. distinctline
-8. jsontransform
+4. jsontransform
+5. jsontotable
+6. distinctline
+7. cmdwithall
+8. cmdforeach
 
 Examples of basic usage (all command are self documented with `--help`) :
 
