@@ -112,6 +112,11 @@ func orderBy[T cmp.Ordered](src *os.File, extracter func(map[string]any) T) erro
 		attrAndDatas = append(attrAndDatas, attrAndData[T]{attr: extracter(jsonObject), data: b})
 	}
 
+	err := scanner.Err()
+	if err != nil {
+		return err
+	}
+
 	sortFunc := slices.SortFunc[[]attrAndData[T], attrAndData[T]]
 	if stable {
 		sortFunc = slices.SortStableFunc[[]attrAndData[T], attrAndData[T]]
@@ -125,14 +130,14 @@ func orderBy[T cmp.Ordered](src *os.File, extracter func(map[string]any) T) erro
 
 	endLine := []byte{'\n'}
 	for _, value := range attrAndDatas {
-		if _, err := os.Stdout.Write(value.data); err != nil {
+		if _, err = os.Stdout.Write(value.data); err != nil {
 			return err
 		}
-		if _, err := os.Stdout.Write(endLine); err != nil {
+		if _, err = os.Stdout.Write(endLine); err != nil {
 			return err
 		}
 	}
-	return scanner.Err()
+	return nil
 }
 
 func extractFloat(jsonObject map[string]any, column string) float64 {
