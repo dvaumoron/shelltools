@@ -3,7 +3,7 @@ module github.com/dvaumoron/shelltools
 go 1.21.0
 
 require (
-	github.com/antonmedv/expr v1.15.5
+	github.com/expr-lang/expr v1.16.9
 	github.com/spf13/cobra v1.8.1
 )
 

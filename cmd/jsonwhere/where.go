@@ -24,7 +24,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/antonmedv/expr"
+	"github.com/expr-lang/expr"
 	"github.com/spf13/cobra"
 
 	"github.com/dvaumoron/shelltools/pkg/common"
