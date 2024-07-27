@@ -29,7 +29,7 @@ import (
 const (
 	errorMessage = `Error: %[1]s
 Usage:
-  cmdwithall [CMD] [ARG ...] [FILE] [flags]
+  cmdwithall [CMD] [ARG ...] FILE [flags]
 
 Flags:
   -h, --help   help for cmdwithall
@@ -41,7 +41,7 @@ Flags:
 if FILE is -, read from standard input
 
 Usage:
-  cmdwithall [CMD] [ARG ...] [FILE] [flags]
+  cmdwithall [CMD] [ARG ...] FILE [flags]
 
 Flags:
   -h, --help   help for cmdwithall`
