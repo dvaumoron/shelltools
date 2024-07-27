@@ -36,7 +36,7 @@ func main() {
 		Short: "jsonwhere filter JSON object from FILE with EXPRESSION as predicate.",
 		Long: `jsonwhere filter JSON object from FILE with EXPRESSION as predicate,
 without FILE or if FILE is -, read from standard input,
-to know which EXPRESSION is accepted : see https://expr.medv.io/docs/Language-Definition`,
+to know which EXPRESSION is accepted : see https://expr-lang.org/docs/language-definition`,
 		Args: cobra.RangeArgs(1, 2),
 		RunE: jsonWhereWithInit,
 	}
