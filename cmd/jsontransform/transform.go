@@ -32,7 +32,11 @@ import (
 	"github.com/dvaumoron/shelltools/pkg/common"
 )
 
-var errNoSep = errors.New("no '=' separator")
+var (
+	errNoSep = errors.New("no '=' separator")
+
+	underline bool
+)
 
 type Rule struct {
 	Name      string
@@ -64,6 +68,9 @@ to know which EXPRESSION is accepted : see https://expr-lang.org/docs/language-d
 		RunE: jsonTransformWithInit,
 	}
 
+	cmdFlags := cmd.Flags()
+	cmdFlags.BoolVarP(&underline, "underline", "u", false, "convert space in object field name in '_'")
+
 	if err := cmd.Execute(); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -85,7 +92,35 @@ func jsonTransformWithInit(cmd *cobra.Command, args []string) error {
 	}
 	defer closer()
 
-	return jsonTransform(rules, src)
+	parser := jsonParser
+	if underline {
+		parser = underlineJsonParser
+	}
+
+	return jsonTransform(rules, parser, src)
+}
+
+func jsonTransform(rules []Rule, jsonParser func([]byte) (any, error), src *os.File) error {
+	scanner := bufio.NewScanner(src)
+	encoder := json.NewEncoder(os.Stdout)
+	for scanner.Scan() {
+		jsonValue, err := jsonParser(scanner.Bytes())
+		if err != nil {
+			return err
+		}
+
+		newObject := map[string]any{}
+		for _, rule := range rules {
+			if newObject[rule.Name], err = rule.Transform(jsonValue); err != nil {
+				return err
+			}
+		}
+
+		if err = encoder.Encode(newObject); err != nil {
+			return err
+		}
+	}
+	return scanner.Err()
 }
 
 func parseRules(expressions []string) ([]Rule, error) {
@@ -107,26 +142,21 @@ func parseRules(expressions []string) ([]Rule, error) {
 	return rules, nil
 }
 
-func jsonTransform(rules []Rule, src *os.File) error {
-	scanner := bufio.NewScanner(src)
-	encoder := json.NewEncoder(os.Stdout)
-	for scanner.Scan() {
-		var jsonValue any
-		err := json.Unmarshal(scanner.Bytes(), &jsonValue)
-		if err != nil {
-			return err
-		}
+func jsonParser(data []byte) (any, error) {
+	var jsonValue any
+	err := json.Unmarshal(data, &jsonValue)
+	return jsonValue, err
+}
 
-		newObject := map[string]any{}
-		for _, rule := range rules {
-			if newObject[rule.Name], err = rule.Transform(jsonValue); err != nil {
-				return err
-			}
-		}
-
-		if err = encoder.Encode(newObject); err != nil {
-			return err
-		}
+func underlineJsonParser(data []byte) (any, error) {
+	var jsonObject map[string]any
+	if err := json.Unmarshal(data, &jsonObject); err != nil {
+		return nil, err
 	}
-	return scanner.Err()
+
+	newObject := map[string]any{}
+	for name, value := range jsonObject {
+		newObject[strings.ReplaceAll(name, " ", "_")] = value
+	}
+	return newObject, nil
 }
