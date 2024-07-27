@@ -15,6 +15,7 @@ Available utilities:
 5. cmdwithall
 6. cmdforeach
 7. distinctline
+8. jsontransform
 
 Examples of basic usage (all command are self documented with `--help`) :
 

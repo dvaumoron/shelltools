@@ -8,6 +8,7 @@ before:
     - go get -u ./cmd/distinctline
     - go get -u ./cmd/jsonorderby
     - go get -u ./cmd/jsontotable
+    - go get -u ./cmd/jsontransform
     - go get -u ./cmd/jsonwhere
     - go get -u ./cmd/linetojson
     - go mod tidy
@@ -94,6 +95,24 @@ builds:
   - id: jsontotable
     binary: jsontotable
     main: ./cmd/jsontotable
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - windows
+      - darwin
+      - freebsd
+      - openbsd
+      - solaris
+    goarch:
+      - "386"
+      - amd64
+      - arm
+      - arm64
+
+  - id: jsontransform
+    binary: jsontransform
+    main: ./cmd/jsontransform
     env:
       - CGO_ENABLED=0
     goos:
