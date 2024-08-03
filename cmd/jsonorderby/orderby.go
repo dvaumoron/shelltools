@@ -28,29 +28,30 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/hashicorp/go-version"
 	"github.com/spf13/cobra"
+	"github.com/tofuutils/tenv/v2/pkg/reversecmp"
 
 	"github.com/dvaumoron/shelltools/pkg/common"
 )
 
-type attrAndData[T cmp.Ordered] struct {
+type attrAndData[T any] struct {
 	attr T
 	data []byte
 }
 
-func cmpAsc[T cmp.Ordered](a attrAndData[T], b attrAndData[T]) int {
-	return cmp.Compare(a.attr, b.attr)
-}
-
-func cmpDesc[T cmp.Ordered](a attrAndData[T], b attrAndData[T]) int {
-	return -cmp.Compare(a.attr, b.attr)
+func cmpAttr[T any](cmpFunc func(T, T) int) func(a attrAndData[T], b attrAndData[T]) int {
+	return func(a attrAndData[T], b attrAndData[T]) int {
+		return cmpFunc(a.attr, b.attr)
+	}
 }
 
 var (
-	descOrder       bool
-	extractAsNumber bool
-	ignoreCase      bool
-	stable          bool
+	descOrder        bool
+	extractAsNumber  bool
+	extractAsVersion bool
+	ignoreCase       bool
+	stable           bool
 )
 
 func main() {
@@ -65,6 +66,7 @@ without FILE or if FILE is -, read from standard input`,
 
 	cmdFlags := cmd.Flags()
 	cmdFlags.BoolVarP(&extractAsNumber, "number", "n", false, "process values in ordering column as number")
+	cmdFlags.BoolVarP(&extractAsVersion, "semver", "v", false, "process values in ordering column as semantic version")
 	cmdFlags.BoolVarP(&descOrder, "desc", "d", false, "sort in descending order")
 	cmdFlags.BoolVarP(&stable, "stable", "s", false, "use a stable sort")
 	cmdFlags.BoolVarP(&ignoreCase, "ignore-case", "i", false, "ignore case in ordering column")
@@ -89,18 +91,26 @@ func jsonOrderByWithInit(cmd *cobra.Command, args []string) error {
 	case extractAsNumber:
 		return orderBy(src, func(jsonObject map[string]any) float64 {
 			return extractFloat(jsonObject, column)
-		})
+		}, cmp.Compare[float64])
+	case extractAsVersion:
+		return orderBy(src,
+			func(jsonObject map[string]any) *version.Version {
+				return extractVersion(jsonObject, column)
+			},
+			func(v1 *version.Version, v2 *version.Version) int {
+				return v1.Compare(v2)
+			})
 	case ignoreCase:
 		return orderBy(src, func(jsonObject map[string]any) string {
 			return strings.ToLower(common.ExtractString(jsonObject, column))
-		})
+		}, cmp.Compare[string])
 	}
 	return orderBy(src, func(jsonObject map[string]any) string {
 		return common.ExtractString(jsonObject, column)
-	})
+	}, cmp.Compare[string])
 }
 
-func orderBy[T cmp.Ordered](src *os.File, extracter func(map[string]any) T) error {
+func orderBy[T any](src *os.File, extracter func(map[string]any) T, cmpFunc func(T, T) int) error {
 	var attrAndDatas []attrAndData[T]
 	scanner := bufio.NewScanner(src)
 	for scanner.Scan() {
@@ -122,11 +132,8 @@ func orderBy[T cmp.Ordered](src *os.File, extracter func(map[string]any) T) erro
 		sortFunc = slices.SortStableFunc[[]attrAndData[T], attrAndData[T]]
 	}
 
-	if descOrder {
-		sortFunc(attrAndDatas, cmpDesc[T])
-	} else {
-		sortFunc(attrAndDatas, cmpAsc[T])
-	}
+	cmpAttrFunc := reversecmp.Reverser(cmpAttr(cmpFunc), descOrder)
+	sortFunc(attrAndDatas, cmpAttrFunc)
 
 	endLine := []byte{'\n'}
 	for _, value := range attrAndDatas {
@@ -154,4 +161,9 @@ func extractFloat(jsonObject map[string]any, column string) float64 {
 		return parsed
 	}
 	return 0
+}
+
+func extractVersion(jsonObject map[string]any, column string) *version.Version {
+	v, _ := version.NewVersion(common.ExtractString(jsonObject, column))
+	return v
 }
