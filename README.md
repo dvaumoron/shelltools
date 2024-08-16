@@ -14,8 +14,7 @@ Available utilities:
 4. jsontransform
 5. jsontotable
 6. distinctline
-7. cmdwithall
-8. cmdforeach
+7. cmdforeach
 
 Examples of basic usage (all command are self documented with `--help`) :
 

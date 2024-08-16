@@ -4,7 +4,6 @@ version: 2
 before:
   hooks:
     - go get -u ./cmd/cmdforeach
-    - go get -u ./cmd/cmdwithall
     - go get -u ./cmd/distinctline
     - go get -u ./cmd/jsonorderby
     - go get -u ./cmd/jsontotable
@@ -17,26 +16,6 @@ builds:
   - id: cmdforeach
     binary: cmdforeach
     main: ./cmd/cmdforeach
-    env:
-      - CGO_ENABLED=0
-    ldflags:
-      - -s -w -X main.version={{.Tag}}
-    goos:
-      - linux
-      - windows
-      - darwin
-      - freebsd
-      - openbsd
-      - solaris
-    goarch:
-      - "386"
-      - amd64
-      - arm
-      - arm64
-
-  - id: cmdwithall
-    binary: cmdwithall
-    main: ./cmd/cmdwithall
     env:
       - CGO_ENABLED=0
     ldflags:

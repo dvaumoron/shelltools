@@ -32,7 +32,7 @@ Usage:
   cmdforeach [CMD] [ARG ...] FILE [flags]
 
 Flags:
-  -h, --help   help for cmdwithall
+  -h, --help   help for cmdforeach
 
 %[1]s
 `
